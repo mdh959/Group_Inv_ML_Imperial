@@ -23,6 +23,12 @@ def data_wrangle_S():
     Sweights, SHodge = np.array(Sweights), np.array(SHodge)[:, 1:2]
     return Sweights, SHodge
 
+def permute_vector(vector):
+    # Shuffle the vector using NumPy's permutation function
+    permuted_vector = np.random.permutation(vector)
+
+    return permuted_vector
+    
 def daattavya_accuracy(weights, hodge_numbers, model):
     bound = 0.05*(np.max(hodge_numbers)-np.min(hodge_numbers)) #define the bound as done in Daattavya's paper
     random_indices = np.random.choice(np.array(weights).shape[0], 1000, replace=False) #make a selection as to not work with all the data
