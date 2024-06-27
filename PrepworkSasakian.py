@@ -6,8 +6,11 @@ from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.model_selection import train_test_split
 import urllib.request
 
-################################################################################
-#importing and wrangling data
+def permute_vector(vector):
+    # Shuffle the vector using NumPy's permutation function
+    permuted_vector = np.random.permutation(vector)
+
+    return permuted_vector
 
 def data_wrangle_S():
     Sweights, SHodge = [], []
@@ -24,9 +27,6 @@ def data_wrangle_S():
                 if idx%6 == 2: SHodge.append(eval(line))
     Sweights, SHodge = np.array(Sweights), np.array(SHodge)[:, 1:2]
     return Sweights, SHodge
-
-################################################################################
-#defining and training NN
 
 def get_network():
     inp = tf.keras.layers.Input(shape=(5,))
@@ -55,7 +55,6 @@ def train_network(X_train, y_train, X_test, y_test):
     )
     return model, history
 
-################################################################################
 #defining accuracy as in the paper
 
 def daattavya_accuracy(weights, hodge_numbers, model):
@@ -65,7 +64,6 @@ def daattavya_accuracy(weights, hodge_numbers, model):
     predictions = model.predict(random_selection)
     return np.mean(np.where(np.absolute(np.array(predictions)-hodge_numbers[random_indices]) < bound,1,0)) #use definition of accuracy as in paper
 
-################################################################################
 #running the program: 
 
 if __name__ == '__main__':
