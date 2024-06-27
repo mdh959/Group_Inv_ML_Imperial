@@ -97,3 +97,17 @@ if __name__ == '__main__':
     print('Accuracy as defined in the paper:')
     print(str(round(daattavya_accuracy(X_test, y_test, model) * 100, 1)) + '%')
     print(str(round(daattavya_accuracy(X_test_permuted, y_test, model) * 100, 1)) + '%')
+# for permuted training data
+Accuracy on original test set:
+32/32 [==============================] - 0s 1ms/step
+56.4%
+Accuracy on permuted test set:
+32/32 [==============================] - 0s 1ms/step
+58.5%
+
+# for non-permuted data
+Accuracy as defined in the paper:
+32/32 [==============================] - 0s 1ms/step
+91.1%
+32/32 [==============================] - 0s 1ms/step
+32.5%
