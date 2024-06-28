@@ -57,12 +57,10 @@ def train_network(X_train, y_train, X_test, y_test):
 
 #defining accuracy as in the paper
 
-def daattavya_accuracy(weights, hodge_numbers, model):
-    bound = 0.05*(np.max(hodge_numbers)-np.min(hodge_numbers)) #define the bound as done in Daattavya's paper
-    random_indices = np.random.choice(np.array(weights).shape[0], 1000, replace=False) #make a selection as to not work with all the data
-    random_selection = weights[random_indices] 
-    predictions = model.predict(random_selection)
-    return np.mean(np.where(np.absolute(np.array(predictions)-hodge_numbers[random_indices]) < bound,1,0)) #use definition of accuracy as in paper
+def daattavya_accuracy(training_outputs, test_inputs, test_outputs, model):
+    bound = 0.05*(np.max(training_outputs)-np.min(training_outputs)) #define the bound as done in Daattavya's paper
+    predictions = model.predict(test_inputs)
+    return np.mean(np.where(np.absolute(np.array(predictions)-test_outputs) < bound,1,0)) #use definition of accuracy as in paper
 
 #running the program: 
 # test the data with neural network trained on permuted inputs
