@@ -7,10 +7,7 @@ from sklearn.model_selection import train_test_split
 import urllib.request
 
 def permute_vector(vector):
-    # Shuffle the vector using NumPy's permutation function
-    permuted_vector = np.random.permutation(vector)
-
-    return permuted_vector
+    return np.random.permutation(vector)
 
 def data_wrangle_S():
     Sweights, SHodge = [], []
@@ -56,56 +53,20 @@ def train_network(X_train, y_train, X_test, y_test):
     return model, history
 
 #defining accuracy as in the paper
-
 def daattavya_accuracy(training_outputs, test_inputs, test_outputs, model):
     bound = 0.05*(np.max(training_outputs)-np.min(training_outputs)) #define the bound as done in Daattavya's paper
     predictions = model.predict(test_inputs)
     return np.mean(np.where(np.absolute(np.array(predictions)-test_outputs) < bound,1,0)) #use definition of accuracy as in paper
 
-#running the program: 
-# test the data with neural network trained on permuted inputs
+#running the program:
 if __name__ == '__main__':
-    #training on the sasakain hodge numbers, as in the paper
+    #training on the ordered sasakain hodge numbers
     X,y = data_wrangle_S()
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5) #split data into training and testing
-    permuted_X_train = np.apply_along_axis(permute_vector, 1, X_train)
-    permuted_X_test = np.apply_along_axis(permute_vector, 1, X_test)
-    
-    # Train model on permuted training data
-    model, history = train_network(permuted_X_train, y_train, permuted_X_test, y_test)
-    
-    # Evaluate model on original and permuted test sets
-    print('Accuracy on original test set:')
-    print(str(round(daattavya_accuracy(X_test, y_test, model) * 100, 1)) + '%')
-    
-    print('Accuracy on permuted test set:')
-    print(str(round(daattavya_accuracy(permuted_X_test, y_test, model) * 100, 1)) + '%')
-
-
-# test the data with neural network trained on ordered inputs
-if __name__ == '__main__':
-    #training on the sasakain hodge numbers, as in the paper
-    X,y = data_wrangle_S()
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5) #split data into training and testing
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2) #split data into training and testing
     X_test_permuted = permute_vector(X_test)
-    # Train network on permuted data
     model, history = train_network(X_train, y_train, X_test, y_test)
     
-    # Evaluate accuracy on original test set
+    # Evaluate accuracy on original and permuted test set
     print('Accuracy as defined in the paper:')
     print(str(round(daattavya_accuracy(X_test, y_test, model) * 100, 1)) + '%')
     print(str(round(daattavya_accuracy(X_test_permuted, y_test, model) * 100, 1)) + '%')
-# for permuted training data
-Accuracy on original test set:
-32/32 [==============================] - 0s 1ms/step
-56.4%
-Accuracy on permuted test set:
-32/32 [==============================] - 0s 1ms/step
-58.5%
-
-# for non-permuted data
-Accuracy as defined in the paper:
-32/32 [==============================] - 0s 1ms/step
-91.1%
-32/32 [==============================] - 0s 1ms/step
-32.5%
