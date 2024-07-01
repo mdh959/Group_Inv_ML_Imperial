@@ -82,7 +82,6 @@ def train_network(X_train, y_train, X_test, y_test):
     return model, history
 
 if __name__ == '__main__':
-    # Training on the Sasakian Hodge numbers
     X, y = data_wrangle_S()
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2) # Split data into training and testing
     X_test_permuted = np.apply_along_axis(permute_vector, 1, X_test)
