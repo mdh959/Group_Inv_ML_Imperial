@@ -46,7 +46,7 @@ def ode_system(x, net):
 
     return total_loss
 
-train_x = np.linspace(0, 2*np.pi, 6000).reshape(-1, 1).astype(np.float64)
+train_x = np.random.uniform(low = 0, high = 2*pi, (num_samples,1)
 train_loss_record = []
 
 for itr in range(6000):
