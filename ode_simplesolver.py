@@ -82,106 +82,111 @@ plt.show()
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
+
 tf.keras.backend.set_floatx('float64')
 
-# Define the PINN class for solving f''(x) = sin(x)
+# Define the neural network model
+NN = tf.keras.models.Sequential([
+    tf.keras.layers.Input((1,)),  # input layer with 1 input: x
+    tf.keras.layers.Dense(units=32, activation='tanh'),
+    tf.keras.layers.Dense(units=64, activation='tanh'),
+    tf.keras.layers.Dense(units=32, activation='tanh'),
+    tf.keras.layers.Dense(units=1)
+])
+
+NN.summary()
+
 class PINN:
-    def __init__(self):
-        # Define the neural network model
-        self.model = tf.keras.models.Sequential([
-            tf.keras.layers.Input((1,)),
-            tf.keras.layers.Dense(units=64, activation='sigmoid'),
-            tf.keras.layers.Dense(units=1)
-        ])
+    def __init__(self, model):
+        self.model = model
 
-        # Define the optimizer
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+    def loss(self, x_init, u_init, x_bound, u_bound, x_collocation):
+        # Loss on the initial condition f(0) = 0
+        u_init_pred = self.model(x_init)
+        init_loss = tf.reduce_mean(tf.square(u_init - u_init_pred))
 
-    def f_model(self, x):
-        with tf.GradientTape(persistent=True) as tape:
-            tape.watch(x)
+        # Loss on the boundary condition f(2pi) = 0
+        u_bound_pred = self.model(x_bound)
+        bound_loss = tf.reduce_mean(tf.square(u_bound - u_bound_pred))
 
-            # Getting the prediction
-            f = self.model(x)
+        # Loss on the differential equation f''(x) - sin(x) = 0 at collocation points
+        with tf.GradientTape(persistent=True) as tape2:
+            tape2.watch(x_collocation)
+            with tf.GradientTape() as tape1:
+                tape1.watch(x_collocation)
+                u_collocation = self.model(x_collocation)
+            u_x = tape1.gradient(u_collocation, x_collocation)
+        u_xx = tape2.gradient(u_x, x_collocation)
 
-            # Derivatives
-            f_x = tape.gradient(f, x)
-        f_xx = tape.gradient(f_x, x)
+        rhs_collocation = tf.sin(x_collocation)
+        collocation_loss = tf.reduce_mean(tf.square(u_xx - rhs_collocation))
 
-        del tape
-
-        return f, f_xx
-
-    def ode_loss(self, x):
-        x = tf.reshape(x, [-1, 1])
-        x_0 = tf.constant([[0]], dtype=tf.float64)
-        x_2pi = tf.constant([[2 * np.pi]], dtype=tf.float64)
-        f, f_xx = self.f_model(x)
-
-        # Right-hand side of the differential equation
-        rhs = tf.sin(x)
-
-        # ODE Loss: f''(x) - sin(x) should be zero
-        ode_loss = f_xx - rhs
-
-        # Initial Condition Loss (assuming f(0) = 0 and f(2pi) = 0
-        IC_loss = tf.square(self.model(x_0) - 0) + tf.square(self.model(x_2pi) - 0)
-
-        square_loss = tf.square(ode_loss) + tf.square(IC_loss)
-        total_loss = tf.reduce_mean(square_loss)
-        
-
+        total_loss = init_loss + bound_loss + collocation_loss
         return total_loss
 
-    def train(self, train_x, iterations=10000):
-        train_loss_record = []
+    def train(self, x_init, u_init, x_bound, u_bound, x_collocation, epochs, learning_rate):
+        optimizer = tf.keras.optimizers.Adam(learning_rate)
+        loss_history = []
 
-        for itr in range(iterations):
+        for epoch in range(epochs):
             with tf.GradientTape() as tape:
-                loss = self.ode_loss(train_x)
+                loss_value = self.loss(x_init, u_init, x_bound, u_bound, x_collocation)
+            grads = tape.gradient(loss_value, self.model.trainable_variables)
+            optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
+            loss_history.append(loss_value.numpy())
 
-            train_loss_record.append(loss.numpy())
-            grad_w = tape.gradient(loss, self.model.trainable_variables)
-            self.optimizer.apply_gradients(zip(grad_w, self.model.trainable_variables))
+            if epoch % 100 == 0:
+                print(f"Epoch {epoch}: Loss = {loss_value.numpy()}")
 
-            if itr % 1000 == 0:
-                print(f"Iteration {itr}: Loss = {loss.numpy()}")
+        return loss_history
 
-        plt.figure(figsize=(10, 8))
-        plt.plot(train_loss_record)
-        plt.xlabel('Iterations', fontsize=15)
-        plt.ylabel('Training Loss', fontsize=15)
-        plt.show()
+# Generate initial condition data (u(0) = 0)
+x_init = np.array([[0.0]], dtype=np.float64)
+u_init = np.array([[0.0]], dtype=np.float64)
 
-    def predict(self, test_x):
-        test_x = tf.reshape(test_x, [-1, 1])
+# Generate boundary condition data (u(2pi) = 0)
+x_bound = np.array([[2.0 * np.pi]], dtype=np.float64)
+u_bound = np.array([[0.0]], dtype=np.float64)
 
-        # Predict using the trained model
-        predictions = self.model(test_x).numpy().ravel()
+# Generate collocation points
+num_samples_collocation = 1000
+x_collocation = np.random.uniform(low=0, high=2 * np.pi, size=(num_samples_collocation, 1))
 
-        return predictions
+# Convert to tensors
+x_init_tf = tf.convert_to_tensor(x_init, dtype=tf.float64)
+u_init_tf = tf.convert_to_tensor(u_init, dtype=tf.float64)
+x_bound_tf = tf.convert_to_tensor(x_bound, dtype=tf.float64)
+u_bound_tf = tf.convert_to_tensor(u_bound, dtype=tf.float64)
+x_collocation_tf = tf.convert_to_tensor(x_collocation, dtype=tf.float64)
 
-# Main script to run the PINN
-if __name__ == "__main__":
-    # Create PINN instance
-    pinns_solver = PINN()
+# Initialize the PINN
+pinn = PINN(NN)
 
-    # Training data
-    train_x = np.linspace(0, 2*np.pi, 100).reshape(-1, 1).astype(np.float64)
+# Train the model
+epochs = 6000
+learning_rate = 0.001
+loss_history = pinn.train(x_init_tf, u_init_tf, x_bound_tf, u_bound_tf, x_collocation_tf, epochs, learning_rate)
 
-    # Train the PINN
-    pinns_solver.train(train_x, iterations=10000)
+# Plot the training loss
+plt.figure(figsize=(10, 8))
+plt.plot(loss_history)
+plt.yscale('log')
+plt.xlabel('Iteration', fontsize=15)
+plt.ylabel('Loss', fontsize=15)
+plt.title('Training Loss', fontsize=15)
+plt.show()
 
-    # Test data
-    test_x = np.linspace(0, 2*np.pi, 100).reshape(-1, 1).astype(np.float64)
+# Prediction
+test_x = np.linspace(0, 2 * np.pi, 100).astype(np.float64).reshape(-1, 1)
+true_f = -np.sin(test_x)
+pred_f = NN.predict(test_x).ravel()
 
-    # Predict and plot results
-    predictions = pinns_solver.predict(test_x)
-
-    plt.figure(figsize=(10, 8))
-    plt.plot(test_x, -np.sin(test_x), '-k', label='True')
-    plt.plot(test_x, predictions, '--r', label='Prediction')
-    plt.legend(fontsize=15)
-    plt.xlabel('x', fontsize=15)
-    plt.ylabel('f', fontsize=15)
-    plt.show()
+# Plot the prediction and true function
+plt.figure(figsize=(10, 8))
+plt.plot(test_x, true_f, '-k', label='True')
+plt.plot(test_x, pred_f, '--r', label='Prediction')
+plt.legend(fontsize=15)
+plt.xlabel('x', fontsize=15)
+plt.ylabel('f', fontsize=15)
+plt.title('ODE Solution', fontsize=15)
+plt.show()
