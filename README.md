@@ -13,6 +13,7 @@ zero?
 
 Initial guess: yes. Goal of project is to produce numerical evidence for Yes/No. Define some metric on 𝑇3, compute the harmonic 1-forms and check if they have zeros. 
 
+Initial work: ode_solver.py is not working correctly for now, was an attempt to reproduce students PINN [] to solve the ODE f''(x)=sinx but theirs was for a more complicated equation. Developed simpler model for this case shown in ode_simplesolver.py.
 Install packages in requirements.txt. Tested with Python 3.9.6.
 
 # References:
