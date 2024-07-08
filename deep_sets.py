@@ -8,35 +8,14 @@ import ast
 import tensorflow as tf
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.model_selection import train_test_split
+from PrepworkSasakian import daattavya_accuracy
+from PrepworkSasakian import data_wrangle_S
+from PrepworkSasakian import train_network
 import urllib.request
 
 
 def permute_vector(vector):
     return np.random.permutation(vector)
-
-def data_wrangle_S():
-    Sweights, SHodge = [], []
-    try:
-        with open('Topological_Data.txt', 'r') as file:
-            for idx, line in enumerate(file.readlines()[1:]):
-                if idx % 6 == 0:
-                    Sweights.append(eval(line))
-                if idx % 6 == 2:
-                    SHodge.append(eval(line))
-    except FileNotFoundError as e:
-        import urllib.request
-        urllib.request.urlretrieve('https://raw.githubusercontent.com/TomasSilva/MLcCY7/main/Data/Topological_Data.txt', 'Topological_Data.txt')
-        with open('Topological_Data.txt', 'r') as file:
-            for idx, line in enumerate(file.readlines()[1:]):
-                if idx % 6 == 0:
-                    Sweights.append(eval(line))
-                if idx % 6 == 2:
-                    SHodge.append(eval(line))
-    Sweights, SHodge = np.array(Sweights), np.array(SHodge)[:, 1:2]
-    return Sweights, SHodge
-
-
-
 
 #define new architecture for the NN
 def equivariant_layer(inp, number_of_channels_in, number_of_channels_out):
@@ -45,7 +24,7 @@ def equivariant_layer(inp, number_of_channels_in, number_of_channels_out):
     # ---(1)---
     out1 = layers.Conv1D(number_of_channels_out, 1, strides=1, padding='valid', use_bias=False, activation='relu')(inp)
     # ---(2)---
-    out2 = layers.AveragePooling1D(pool_size=5, strides=1, padding='valid')(inp)
+    out2 = layers.GlobalAveragePooling1D(pool_size=5, strides=1, padding='valid')(inp)
     repeated = [out2 for _ in range(5)]
     out2 = layers.Concatenate(axis=1)(repeated)
     out2 = layers.Conv1D(number_of_channels_out, 1, strides=1, padding='valid', use_bias=True, activation='relu')(out2)
@@ -67,14 +46,15 @@ def get_deep_sets_network(pooling='sum'):
     e2 = layers.Dropout(0.5)(e2)
 
     if pooling=='sum':
-        p1 = layers.AveragePooling1D(5, strides=1, padding='valid')(e2)
+        p1 = layers.GlobalAveragePooling1D(5, strides=1, padding='valid')(e2)
     else:
         p1 = layers.MaxPooling1D(5, strides=1, padding='valid')(e2)
     p2 = layers.Flatten()(p1)
 
-    fc1 = layers.Dense(64, activation='relu')(p2)
+    fc1 = layers.Dense(16, activation='relu')(p2)
     fc2 = layers.Dense(32, activation='relu')(fc1)
-    out = layers.Dense(1, activation='linear')(fc2)
+    fc3 = layers.Dense(16, activation='relu')(fc2)
+    out = layers.Dense(1, activation='linear')(fc3)
 
     model = models.Model(inputs=inp, outputs=out)
     model.compile(
@@ -84,24 +64,6 @@ def get_deep_sets_network(pooling='sum'):
     )
     return model
 
-
-def train_network(X_train, y_train, X_test, y_test):
-    model = get_deep_sets_network()
-    early_stopping = EarlyStopping(monitor='val_loss', patience=7)
-    history = model.fit(
-        X_train, y_train,
-        epochs=999999,
-        validation_data=(X_test, y_test),
-        callbacks=[early_stopping]
-    )
-    return model, history
-
-def daattavya_accuracy(training_outputs, test_inputs, test_outputs, model):
-    bound = 0.05*(np.max(training_outputs)-np.min(training_outputs)) #define the bound as done in Daattavya's paper
-    predictions = model.predict(test_inputs)
-    return np.mean(np.where(np.absolute(np.array(predictions)-test_outputs) < bound,1,0)) #use definition of accuracy as in paper
-
-
 #running the program:
 
 if __name__ == '__main__':
@@ -109,7 +71,6 @@ if __name__ == '__main__':
     X, y = data_wrangle_S()
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2) # Split data into training and testing
     X_test_permuted = np.apply_along_axis(permute_vector, 1, X_test)
-
     # Train network on permuted data
     model, history = train_network(X_train, y_train, X_test, y_test)
 
