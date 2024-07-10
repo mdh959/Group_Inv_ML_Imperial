@@ -10,7 +10,7 @@ class SineActivation(Layer):
         super(SineActivation, self).__init__()
 
     def call(self, inputs):
-        return tf.concat([tf.sin(2 * np.pi * inputs), tf.cos(2 * np.pi * inputs)], 1)
+        return tf.concat([tf.sin(inputs), tf.cos(inputs)], 1)
 
 # Define the neural network model
 NN = tf.keras.models.Sequential([

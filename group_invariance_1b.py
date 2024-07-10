@@ -35,6 +35,7 @@ def build_model():
     # Apply the shared model to each permuted input
     permuted_outputs = tf.keras.layers.TimeDistributed(shared_nn)(permuted_inputs)
 
+
     # Sum the outputs of these individual models running in parallel
     summed_output = tf.keras.layers.Lambda(lambda x: tf.reduce_sum(x, axis=1))(permuted_outputs)
 
@@ -64,9 +65,29 @@ if __name__ == '__main__':
     X, y = data_wrangle_S()
     X = X.reshape(-1, 5)  # Reshape the data to fit the model input shape
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)  # Split data into training and testing
-    X_test_permuted = np.apply_along_axis(permute_vector, 1, X_test)
-    model, history = train_network(X_train, y_train, X_test, y_test, build_model())
-    # Evaluate accuracy on original test set and permuted test set
-    print('Accuracy as defined in the paper:')
-    print(str(round(daattavya_accuracy(y_train, X_test, y_test, model) * 100, 1)) + '%')
-    print(str(round(daattavya_accuracy(y_train, X_test_permuted, y_test, model) * 100, 1)) + '%')
+
+    original_accuracies = []
+    permuted_accuracies = []
+
+    num_runs = 10
+
+    for _ in range(num_runs):
+        X_test_permuted = np.apply_along_axis(permute_vector, 1, X_test)
+        model, history = train_network(X_train, y_train, X_test, y_test, build_model())
+
+        original_accuracy = daattavya_accuracy(y_train, X_test, y_test, model)
+        permuted_accuracy = daattavya_accuracy(y_train, X_test_permuted, y_test, model)
+
+        original_accuracies.append(original_accuracy)
+        permuted_accuracies.append(permuted_accuracy)
+
+        print(f'Run {_ + 1}:')
+        print(f'Accuracy on original test set: {original_accuracy * 100:.1f}%')
+        print(f'Accuracy on permuted test set: {permuted_accuracy * 100:.1f}%')
+
+    average_original_accuracy = np.mean(original_accuracies)
+    average_permuted_accuracy = np.mean(permuted_accuracies)
+    print(original_accuracies)
+
+    print(f'\nAverage accuracy on original test set over {num_runs} runs: {average_original_accuracy * 100:.1f}%')
+    print(f'Average accuracy on permuted test set over {num_runs} runs: {average_permuted_accuracy * 100:.1f}%')
