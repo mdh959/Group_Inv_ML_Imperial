@@ -66,7 +66,6 @@ if __name__ == '__main__':
     X_test_permuted = permute_vector(X_test)
     model, history = train_network(X_train, y_train, X_test, y_test)
     
-    # Evaluate accuracy on original and permuted test set
     print('Accuracy as defined in the paper:')
-    print(str(round(daattavya_accuracy(X_test, y_test, model) * 100, 1)) + '%')
-    print(str(round(daattavya_accuracy(X_test_permuted, y_test, model) * 100, 1)) + '%')
+    print(str(round(daattavya_accuracy(y_train, X_test, y_test, model) * 100, 1)) + '%')
+    print(str(round(daattavya_accuracy(y_train, X_test_permuted, y_test, model) * 100, 1)) + '%')
