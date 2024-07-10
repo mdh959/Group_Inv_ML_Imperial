@@ -8,15 +8,6 @@ import urllib.request
 import itertools
 from PrepworkSasakian import get_network, data_wrangle_S, train_network
 
-# Define as in Daattavya's paper but averaged for all permuted inputs
-def GI_1a(training_outputs, test_inputs, test_outputs, model):
-    bound = 0.05 * (np.max(training_outputs) - np.min(training_outputs))  
-    num_samples = test_inputs.shape[0]
-    predictions = np.zeros(test_inputs.shape[0])
-    for i in range(num_samples):
-        permuted_inputs = np.array(list(itertools.permutations(test_inputs[i]))).reshape(120, -1)
-        predictions[i] = np.mean(model.predict(permuted_inputs))
-    return np.mean(np.where(np.abs(predictions - test_outputs.flatten()) < bound, 1, 0)) # use definition of accuracy as in paper
 
 if __name__ == '__main__':
     # Training on the Sasakian Hodge numbers
