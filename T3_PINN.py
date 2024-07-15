@@ -24,21 +24,6 @@ NN = tf.keras.models.Sequential([
 
 NN.summary()
 
-
-def wedge_product(u, v):
-    """ Computes the wedge product of two 3-dimensional vectors u and v. """
-    # Ensure u and v are 3-dimensional
-    assert u.shape[-1] == 3 and v.shape[-1] == 3, "Vectors must be 3-dimensional"
-    
-    # Compute the wedge product components
-    components = [
-        u[:, 1]*v[:, 2] - u[:, 2]*v[:, 1],
-        u[:, 2]*v[:, 0] - u[:, 0]*v[:, 2],
-        u[:, 0]*v[:, 1] - u[:, 1]*v[:, 0]
-    ]
-    
-    return tf.stack(components, axis=1)
-
 # Define basis vectors and one-forms in the 3-dimensional torus space
 class TorusSpace:
     def __init__(self):
@@ -57,28 +42,29 @@ class TorusSpace:
 def partial_derivative(u, x, dim):
     with tf.GradientTape() as tape:
         tape.watch(x)
-        u_val = u(x)
-    du_dx = tape.gradient(u_val, x)[:, dim:dim+1]  # Extracting the partial derivative w.r.t specified dimension
-    return du_dx
+        u_val = u  # Directly use the input tensor `u`
+
+    du_dx = tape.gradient(u_val, x)
+    partial_derivative_dim = du_dx[:, dim]  # Extracting the partial derivative w.r.t specified dimension
+    return partial_derivative_dim
 
 # Define Hodge star operation on 1-forms
-def hodge_star_1_form(u,torus_space):
-    dx1, dx2, dx3 = torus_space.base_oneforms
+def hodge_star_1_form(u):
     u1, u2, u3 = u[:, 0:1], u[:, 1:2], u[:, 2:3]
     
     # Hodge star operation
-    star_u = u1 * wedge_product(dx2, dx3) - u2 * wedge_product(dx1, dx3) + u3 * wedge_product(dx1, dx2)
+    star_u = u1 - u2  + u3
     
     return star_u
 
 def hodge_star_2_form(d_u):
     # Extract components from d_u
-    df2_dx3 = d_u[:, 0:1]
-    df3_dx2 = d_u[:, 1:2]
-    df3_dx1 = d_u[:, 2:3]
-    df1_dx3 = d_u[:, 3:4]
-    df1_dx2 = d_u[:, 4:5]
-    df2_dx1 = d_u[:, 5:6]
+    df2_dx3 = d_u[:, 3:4]
+    df3_dx2 = d_u[:, 5:6]
+    df3_dx1 = d_u[:, 4:5]
+    df1_dx3 = d_u[:, 1:2]
+    df1_dx2 = d_u[:, 0:1]
+    df2_dx1 = d_u[:, 2:3]
 
     # Compute f1_prime, f2_prime, f3_prime
     f1_prime = df2_dx3 - df3_dx2
@@ -96,40 +82,38 @@ def hodge_star_2_form(d_u):
 
 
 # Define the exterior derivative (d) for a 1-form in R^3
-def exterior_derivative_1_form(u,x,dx1,dx2,dx3):
-    du1_dx1 = partial_derivative(u[:, 0], x, dx1)
-    du1_dx2 = partial_derivative(u[:, 0], x, dx2)
-    du1_dx3 = partial_derivative(u[:, 0], x, dx3)
-    
-    du2_dx1 = partial_derivative(u[:, 1], x, dx1)
-    du2_dx2 = partial_derivative(u[:, 1], x, dx2)
-    du2_dx3 = partial_derivative(u[:, 1], x, dx3)
-    
-    du3_dx1 = partial_derivative(u[:, 2], x, dx1)
-    du3_dx2 = partial_derivative(u[:, 2], x, dx2)
-    du3_dx3 = partial_derivative(u[:, 2], x, dx3)
+def exterior_derivative_1_form(u, x):
+    du1_dx2 = partial_derivative(u[:, 0], x, 1)  # Partial derivative with respect to x2
+    du1_dx3 = partial_derivative(u[:, 0], x, 2)  # Partial derivative with respect to x3
+    du2_dx1 = partial_derivative(u[:, 1], x, 0)  # Partial derivative with respect to x1
+    du2_dx3 = partial_derivative(u[:, 1], x, 2)  # Partial derivative with respect to x3
+    du3_dx1 = partial_derivative(u[:, 2], x, 0)  # Partial derivative with respect to x1
+    du3_dx2 = partial_derivative(u[:, 2], x, 1)  # Partial derivative with respect to x2
 
-    d_u = du1_dx2 * wedge_product(dx1, dx2) + du1_dx3 * wedge_product(dx1, dx3)
-    d_u += -(du2_dx1 * wedge_product(dx1, dx2)) + (du2_dx3 * wedge_product(dx2, dx3))
-    d_u += (du3_dx1 * wedge_product(dx1, dx3)) - (du3_dx2 * wedge_product(dx2, dx3))
+    d_u = du1_dx2 + du1_dx3 
+    d_u += -(du2_dx1) + (du2_dx3 )
+    d_u += (du3_dx1 ) - (du3_dx2)
     return d_u
 
-def star_derivative_2_form(u, x, dx1, dx2, dx3):
+def star_derivative_2_form(u, x):
     """ Computes hodge_star * d on a 2-form in R^3. """
-    du1_dx1 = partial_derivative(u[:, 0], x, dx1)
-    du2_dx2 = partial_derivative(u[:, 1], x, dx2)
-    du3_dx3 = partial_derivative(u[:, 2], x, dx3)
-    
+    du1_dx1 = partial_derivative(u[:, 0], x, 1)
+    du2_dx2 = partial_derivative(u[:, 1], x, 2)
+    du3_dx3 = partial_derivative(u[:, 2], x, 3)
     f = (du1_dx1 + du2_dx2 + du3_dx3)
-    
     return f
 
-def derivative_function(f, x, dx1, dx2, dx3):
-    df_dx1 = partial_derivative(f, x, dx1)
-    df_dx2 = partial_derivative(f, x, dx2)
-    df_dx3 = partial_derivative(f, x, dx3)
-    
-    return df_dx1 * dx1 + df_dx2 * dx2 + df_dx3 * dx3
+def derivative_function(f, x):
+    df_dx1 = partial_derivative(f, x, 0)  # Partial derivative with respect to x1
+    df_dx2 = partial_derivative(f, x, 1)  # Partial derivative with respect to x2
+    df_dx3 = partial_derivative(f, x, 2)  # Partial derivative with respect to x3
+    der_du = tf.concat([
+        df_dx1,   # Coefficient of dx1
+        df_dx2,   # Coefficient of dx2
+        df_dx3    # Coefficient of dx3
+    ], axis=1)
+
+    return der_du 
 
 class PINN:
     def __init__(self, model):
@@ -147,25 +131,21 @@ class PINN:
 
             # Evaluate the model at the collocation points
             u = self.model(x_collocation)
-            dx1, dx2, dx3 = self.torus_space.base_oneforms
-            # Construct the 1-form lambda = f1 dx1 + f2 dx2 + f3 dx3
-            lambda_1_form = u[:, 0:1] * dx1 + u[:, 1:2] * dx2 + u[:, 2:3] * dx3
 
             # Calculate d  hodge_star  d  hodge_star
-            hodge_star_du = hodge_star_1_form(lambda_1_form, self.torus_space)
+            hodge_star_du = hodge_star_1_form(u)
             hodge_star_d_hodge_star_du = star_derivative_2_form(hodge_star_du, x_collocation)
             d_hodge_star_d_hodge_star_du = derivative_function(hodge_star_d_hodge_star_du, x_collocation)
 
             # Calculate hodge_star  d  hodge_star  d
-            d_u = exterior_derivative_1_form(lambda_1_form, x_collocation)
+            d_u = exterior_derivative_1_form(u, x_collocation)
             hodge_star_d_u = hodge_star_2_form(d_u)
             d_hodge_star_d_u = exterior_derivative_1_form(hodge_star_d_u, x_collocation)
             hodge_star_d_hodge_star_d_u = hodge_star_2_form(d_hodge_star_d_u, x_collocation)
-
-            # Compute the loss
-            loss = tf.reduce_mean(tf.square(d_hodge_star_d_hodge_star_du) + tf.square(hodge_star_d_hodge_star_d_u))
-
-        return loss
+            # sum Right and Left of pde
+            sum_tensor = d_hodge_star_d_hodge_star_du + hodge_star_d_hodge_star_d_u
+            # Compute the loss based on sum_tensor
+            loss = tf.reduce_mean(tf.square(sum_tensor))
 
         return loss
 

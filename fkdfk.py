@@ -24,21 +24,6 @@ NN = tf.keras.models.Sequential([
 
 NN.summary()
 
-
-def wedge_product(u, v):
-    """ Computes the wedge product of two 3-dimensional vectors u and v. """
-    # Ensure u and v are 3-dimensional
-    assert u.shape[-1] == 3 and v.shape[-1] == 3, "Vectors must be 3-dimensional"
-    
-    # Compute the wedge product components
-    components = [
-        u[:, 1]*v[:, 2] - u[:, 2]*v[:, 1],
-        u[:, 2]*v[:, 0] - u[:, 0]*v[:, 2],
-        u[:, 0]*v[:, 1] - u[:, 1]*v[:, 0]
-    ]
-    
-    return tf.stack(components, axis=1)
-
 # Define basis vectors and one-forms in the 3-dimensional torus space
 class TorusSpace:
     def __init__(self):

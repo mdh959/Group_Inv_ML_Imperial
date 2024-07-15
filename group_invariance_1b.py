@@ -1,13 +1,8 @@
-from keras import layers, models, optimizers
 import numpy as np
-import requests
-import ast
 import tensorflow as tf
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.model_selection import train_test_split
-import urllib.request
 import itertools
-from keras import layers, models, optimizers
 from PrepworkSasakian import daattavya_accuracy, data_wrangle_S, permute_vector
 
 def build_model():
