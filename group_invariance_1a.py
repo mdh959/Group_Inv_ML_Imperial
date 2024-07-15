@@ -1,29 +1,80 @@
 import numpy as np
 import itertools
+import tensorflow as tf
 from sklearn.model_selection import train_test_split
-from PrepworkSasakian import get_network, data_wrangle_S, train_network, permute_vector
+from tensorflow.keras.callbacks import EarlyStopping
+from sklearn.model_selection import train_test_split
+import urllib.request
+
+def permute_vector(vector):
+    return np.random.permutation(vector)
+def daattavya_accuracy(training_outputs, test_inputs, test_outputs, model):
+    bound = 0.05 * (np.max(training_outputs) - np.min(training_outputs))
+    predictions = model.predict(test_inputs)
+    return np.mean(np.where(np.abs(np.array(predictions) - test_outputs) < bound, 1, 0))
+def data_wrangle_S():
+    Sweights, SHodge = [], []
+    try:
+        with open('Topological_Data.txt','r') as file:
+            for idx, line in enumerate(file.readlines()[1:]):
+                if idx%6 == 0: Sweights.append(eval(line))
+                if idx%6 == 2: SHodge.append(eval(line))
+    except FileNotFoundError as e:
+        urllib.request.urlretrieve('https://raw.githubusercontent.com/TomasSilva/MLcCY7/main/Data/Topological_Data.txt', 'Topological_Data.txt')
+        with open('Topological_Data.txt','r') as file:
+            for idx, line in enumerate(file.readlines()[1:]):
+                if idx%6 == 0: Sweights.append(eval(line))
+                if idx%6 == 2: SHodge.append(eval(line))
+    Sweights, SHodge = np.array(Sweights), np.array(SHodge)[:, 1:2]
+    return Sweights, SHodge
+
+def get_network():
+    inp = tf.keras.layers.Input(shape=(5,))
+    prep = tf.keras.layers.Flatten()(inp)
+    h1 = tf.keras.layers.Dense(16, activation='relu')(prep)
+    h2 = tf.keras.layers.Dense(32, activation='relu')(h1)
+    h3 = tf.keras.layers.Dense(16, activation='relu')(h2)
+    out = tf.keras.layers.Dense(1, activation='linear')(h3)
+
+    model = tf.keras.models.Model(inputs=inp, outputs=out)
+    model.compile(
+        loss='mean_squared_error',
+        optimizer=tf.keras.optimizers.Adam(0.001),
+        metrics = ['accuracy']
+    )
+    return model
+
+def train_network(X_train, y_train, X_test, y_test):
+    model = get_network()
+    early_stopping = EarlyStopping(monitor='val_loss', patience=7)
+    history = model.fit(
+        X_train, y_train,
+        epochs=999999,
+        validation_data=(X_test, y_test),
+        callbacks=[early_stopping]
+    )
+    return model, history
 
 def create_group_invariant_function(model):
     """Create a group-invariant function from the given neural network model."""
     def psi(X):
+        # Generate all 120 permutations
         permutations = np.array(list(itertools.permutations(X)))
-        num_permutations = min(len(permutations), 120)  # Limit the number of permutations
-        permutations = permutations[:num_permutations]
-        predictions = np.array([model.predict(np.expand_dims(p, axis=0))[0] for p in permutations])
+        # Predict for all permutations at once
+        predictions = model.predict(permutations)
+        # Return the mean of the predictions
         return np.mean(predictions, axis=0)
     return psi
 
-def group_invariant_accuracy(training_outputs, test_inputs, test_outputs, psi, num_permutations=120):
+def group_invariant_accuracy(training_outputs, test_inputs, test_outputs, psi):
     bound = 0.05 * (np.max(training_outputs) - np.min(training_outputs))  # Define the bound as in Daattavya's paper
     num_samples = test_inputs.shape[0]
-    predictions = np.zeros(num_samples)
-
+    predictions = np.zeros(test_inputs.shape[0])
     for i in range(num_samples):
-        permuted_inputs = np.array(list(itertools.permutations(test_inputs[i])))[:num_permutations]
-        prediction = np.mean([psi(p) for p in permuted_inputs], axis=0)
-        predictions[i] = prediction
-
+        permuted_inputs = np.array(list(itertools.permutations(test_inputs[i]))).reshape(120, -1)
+        predictions[i] = np.mean(psi(permuted_inputs))
     return np.mean(np.where(np.abs(predictions - test_outputs.flatten()) < bound, 1, 0))
+
 
 if __name__ == '__main__':
     # Training on the Sasakian Hodge numbers
