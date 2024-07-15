@@ -1,10 +1,8 @@
-from keras import layers, models
+
 from keras import layers, models
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.model_selection import train_test_split
-from PrepworkSasakian import daattavya_accuracy,data_wrangle_S,train_network
 from PrepworkSasakian import daattavya_accuracy,data_wrangle_S,train_network
 
 def permute_vector(vector):
@@ -13,11 +11,9 @@ def permute_vector(vector):
 #define new architecture for the NN
 def equivariant_layer(inp, number_of_channels_in, number_of_channels_out):
     
-    
     # ---(1)---
     out1 = layers.Conv1D(number_of_channels_out, 1, strides=1, padding='valid', use_bias=False, activation='relu')(inp)
     # ---(2)---
-    out2 = layers.GlobalAveragePooling1D()(inp)  
     out2 = layers.GlobalAveragePooling1D()(inp)  
     out2 = tf.expand_dims(out2, axis=1)
     out2 = tf.tile(out2, [1, 5, 1])
@@ -29,10 +25,6 @@ def get_network():
     inp = layers.Input(shape=(5, 1)) 
    
     # apply equivariant layers
-    number_of_channels = 100
-    inp = layers.Input(shape=(5, 1)) 
-   
-    # apply equivariant layers
     e1 = equivariant_layer(inp, 1, number_of_channels)
     e1 = layers.Dropout(0.5)(e1)
   
@@ -40,10 +32,8 @@ def get_network():
     e2 = layers.Dropout(0.5)(e2)
     
     # pooling function
-    # pooling function
     p1 = layers.GlobalAveragePooling1D()(e2)
 
-    # further training
     # further training
     fc1 = layers.Dense(16, activation='relu')(p1)
     fc2 = layers.Dense(32, activation='relu')(fc1)
@@ -55,31 +45,10 @@ def get_network():
     model.compile(
         loss='mean_squared_error',
         optimizer = tf.optimizers.Adam(0.001),
-        optimizer = tf.optimizers.Adam(0.001),
         metrics=['accuracy'],
     )
     return model
 
-def train_network(X_train, y_train, X_test, y_test):
-    model = get_network()
-    early_stopping = EarlyStopping(monitor='val_loss', patience=7)
-    history = model.fit(
-        X_train, y_train,
-        epochs=999999,
-        validation_data=(X_test, y_test),
-        callbacks=[early_stopping]
-    )
-    return model, history
-def train_network(X_train, y_train, X_test, y_test):
-    model = get_network()
-    early_stopping = EarlyStopping(monitor='val_loss', patience=7)
-    history = model.fit(
-        X_train, y_train,
-        epochs=999999,
-        validation_data=(X_test, y_test),
-        callbacks=[early_stopping]
-    )
-    return model, history
 # Running the program:
 
 if __name__ == '__main__':

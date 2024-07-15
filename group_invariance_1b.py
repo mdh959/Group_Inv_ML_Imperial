@@ -3,7 +3,7 @@ import tensorflow as tf
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.model_selection import train_test_split
 import itertools
-from PrepworkSasakian import daattavya_accuracy, data_wrangle_S, permute_vector
+from PrepworkSasakian import daattavya_accuracy, data_wrangle_S, train_network
 
 def build_model():
     input_layer = tf.keras.layers.Input(shape=(5,))
