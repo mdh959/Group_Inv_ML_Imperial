@@ -144,7 +144,7 @@ class PINN:
         optimizer = tf.keras.optimizers.Adam(learning_rate)
         for epoch in range(epochs):
             with tf.GradientTape() as tape:
-                loss_value = self.loss(x_collocation)
+                loss_value, sum_tensor = self.loss(x_collocation)
             grads = tape.gradient(loss_value, self.model.trainable_variables)
             optimizer.apply_gradients(zip(grads, self.model.trainable_variables)) 
             if epoch % 100 == 0:
