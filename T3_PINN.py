@@ -26,7 +26,7 @@ class PINN:
 
 
 
-    def partial_derivative(self, u, x, dim):
+    def partial_derivative(self,u, x, dim):
         with tf.GradientTape(persistent=True) as tape:
             tape.watch(x)
             u_val = self.model(x)  # Directly use the input tensor `u`
@@ -138,7 +138,7 @@ class PINN:
             # Compute the loss based on sum_tensor
             loss = tf.reduce_mean(tf.square(sum_tensor))
 
-        return loss
+        return loss, sum_tensor
 
     def train(self, x_collocation, epochs, learning_rate):
         optimizer = tf.keras.optimizers.Adam(learning_rate)
@@ -146,15 +146,17 @@ class PINN:
             with tf.GradientTape() as tape:
                 loss_value = self.loss(x_collocation)
             grads = tape.gradient(loss_value, self.model.trainable_variables)
-            optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
-
+            optimizer.apply_gradients(zip(grads, self.model.trainable_variables)) 
             if epoch % 100 == 0:
                 print(f"Epoch {epoch}: Loss = {loss_value.numpy()}")
-
+        # Print the sum_tensor after training
+        print("Final sum_tensor:", sum_tensor.numpy())
+    
 # Generate collocation points within a unit cube [0, 1] x [0, 1] x [0, 1]
 #num_samples_collocation = 1
 #x_collocation = np.random.uniform(low=0, high=1, size=(num_samples_collocation, 3))
 #x_collocation = tf.convert_to_tensor(x_collocation, dtype=tf.float64)
+
 x_collocation = np.array([[1.0, 1.0, 1.0]], dtype=np.float64)  # Shape (1, 3)
 x_collocation= tf.convert_to_tensor(x_collocation, dtype=tf.float64)
 
