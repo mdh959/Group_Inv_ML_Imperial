@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+import math
 from tensorflow.keras.layers import Layer
 
 # Set the floating point precision
@@ -10,7 +11,7 @@ class SineActivation(Layer):
         super(SineActivation, self).__init__()
 
     def call(self, inputs):
-        return tf.concat([tf.sin(inputs), tf.cos(inputs)], 1)
+        return tf.concat([tf.math.sin(2*np.pi*inputs), tf.math.cos(2*np.pi*inputs)], 1)
 
 class PINN:
     def __init__(self):
@@ -41,9 +42,9 @@ class PINN:
 
         # Hodge star operation
         star_u = tf.concat([
-            u1,   # Coefficient of dx1
-            -u2,   # Coefficient of dx2
-            u3    # Coefficient of dx3
+            u1,   # Coefficient of dx2 ^ dx3
+            -u2,   # Coefficient of dx1 ^ dx3
+            u3    # Coefficient of dx1 ^ dx2
         ], axis=1)
 
         return star_u
@@ -122,33 +123,35 @@ class PINN:
             u = self.model(x_collocation)
 
             # Calculate d  hodge_star  d  hodge_star
-            hodge_star_du = self.hodge_star_1_form(u)
-            hodge_star_d_hodge_star_du = self.star_derivative_2_form(hodge_star_du, x_collocation)
-            d_hodge_star_d_hodge_star_du = self.derivative_function(hodge_star_d_hodge_star_du, x_collocation)
+            hodge_star_u = self.hodge_star_1_form(u)
+            hodge_star_d_hodge_star_u = self.star_derivative_2_form(hodge_star_u, x_collocation)
+            d_hodge_star_d_hodge_star_u = self.derivative_function(hodge_star_d_hodge_star_u, x_collocation)
 
             # Calculate hodge_star  d  hodge_star  d
             d_u = self.exterior_derivative_1_form(u, x_collocation)
             hodge_star_d_u = self.hodge_star_2_form(d_u)
             d_hodge_star_d_u = self.exterior_derivative_1_form(hodge_star_d_u, x_collocation)
             hodge_star_d_hodge_star_d_u = self.hodge_star_2_form(d_hodge_star_d_u)
-            
             # sum Right and Left of pde
-            sum_tensor = hodge_star_d_hodge_star_d_u + d_hodge_star_d_hodge_star_du 
-            
+            sum_tensor = hodge_star_d_hodge_star_d_u + d_hodge_star_d_hodge_star_u 
             # Compute the loss based on sum_tensor
             loss = tf.reduce_mean(tf.square(sum_tensor))
+            
+            norm_factor = tf.reduce_sum(tf.abs(u))
+            normalized_loss = loss / norm_factor
+            
 
-        return loss, sum_tensor
+        return normalized_loss, sum_tensor
 
     def train(self, x_collocation, epochs, learning_rate):
         optimizer = tf.keras.optimizers.Adam(learning_rate)
         for epoch in range(epochs):
             with tf.GradientTape() as tape:
-                loss_value, sum_tensor = self.loss(x_collocation)
-            grads = tape.gradient(loss_value, self.model.trainable_variables)
+                normalized_loss, sum_tensor = self.loss(x_collocation)
+            grads = tape.gradient(normalized_loss, self.model.trainable_variables)
             optimizer.apply_gradients(zip(grads, self.model.trainable_variables)) 
             if epoch % 100 == 0:
-                print(f"Epoch {epoch}: Loss = {loss_value.numpy()}")
+                print(f"Epoch {epoch}: Loss = {normalized_loss.numpy()}")
         # Print the sum_tensor after training
         print("Final sum_tensor:", sum_tensor.numpy())
     
@@ -157,14 +160,14 @@ class PINN:
 #x_collocation = np.random.uniform(low=0, high=1, size=(num_samples_collocation, 3))
 #x_collocation = tf.convert_to_tensor(x_collocation, dtype=tf.float64)
 
-x_collocation = np.array([[1.0, 1.0, 1.0]], dtype=np.float64)  # Shape (1, 3)
+x_collocation = np.array([[3.0, 3.0, 3.0],[1.0,1.0,1.0]], dtype=np.float64)  # Shape (1, 3)
 x_collocation= tf.convert_to_tensor(x_collocation, dtype=tf.float64)
 
 # Initialize PINN model
 pinn = PINN()
 
 # Training parameters
-epochs = 1000
+epochs = 100
 learning_rate = 0.001
 
 # Train the model

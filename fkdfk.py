@@ -151,7 +151,7 @@ def train(x_collocation, epochs, learning_rate):
     return loss_history
 
 # Generate collocation points within a unit cube [0, 1] x [0, 1] x [0, 1]
-x_collocation = np.array([[3.0, 3.0, 3.0]], dtype=np.float64)
+x_collocation = np.array([[3.0, 3.0, 3.0],[1.0,1.0,1.0]], dtype=np.float64)
 x_collocation = tf.convert_to_tensor(x_collocation, dtype=tf.float64)
 
 # Training parameters
