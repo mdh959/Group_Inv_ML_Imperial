@@ -19,15 +19,20 @@ def train_network(X_train, y_train, X_test, y_test):
     )
     return model, history
 
-#define new architecture for the NN
+# Define custom layer for expand_dims and tile
+class ExpandTileLayer(layers.Layer):
+    def call(self, inputs):
+        out2 = tf.expand_dims(inputs, axis=1)
+        out2 = tf.tile(out2, [1, 5, 1])
+        return out2
+
+# Define new architecture for the NN
 def equivariant_layer(inp, number_of_channels_in, number_of_channels_out):
-    
     # ---(1)---
     out1 = layers.Conv1D(number_of_channels_out, 1, strides=1, padding='valid', use_bias=False, activation='relu')(inp)
     # ---(2)---
-    out2 = layers.GlobalAveragePooling1D()(inp)  
-    out2 = tf.expand_dims(out2, axis=1)
-    out2 = tf.tile(out2, [1, 5, 1])
+    out2 = layers.GlobalAveragePooling1D()(inp)
+    out2 = ExpandTileLayer()(out2)
     out2 = layers.Conv1D(number_of_channels_out, 1, strides=1, padding='valid', use_bias=True, activation='relu')(out2)
     return layers.Add()([out1, out2])
 
