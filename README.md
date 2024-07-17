@@ -1,4 +1,4 @@
-# ML summer project
+# Group Invariant ML summer project
 Repository for summer work Project 1 at Imperial under supervision of Daniel Platt and Daattavya Argarwal.
 
 ## Packages and Requirements
