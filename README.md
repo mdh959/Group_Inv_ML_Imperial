@@ -1,5 +1,5 @@
 # Group Invariant ML summer project
-Repository for summer work Project 1 at Imperial under supervision of Daniel Platt and Daattavya Argarwal.
+Repository for summer work Project 1 at Imperial in collaboration with Hugo Robijns, under supervision of Daniel Platt and Daattavya Argarwal.
 
 ## Packages and Requirements
 Install packages in requirements.txt. Tested with Python 3.9.6.
