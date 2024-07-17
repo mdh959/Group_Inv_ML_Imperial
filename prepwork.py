@@ -7,8 +7,6 @@ from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.model_selection import train_test_split
 import urllib.request
 
-# importing and wrangling data
-
 def data_wrangle_CNI():
     weights, CNI = [], []
     try:
