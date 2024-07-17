@@ -51,6 +51,6 @@ if __name__ == '__main__':
     X,y = data_wrangle_CNI()
     y = (y-1)/2
     y = np.round(y).astype(int)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5) # split data into training and testing
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2) # split data into training and testing
     model, history = train_network(X_train, y_train, X_test, y_test, get_classifier()) # train network on chosen data
-    print('Accuracy: ' + str(round(accuracy(X_test, y_test, model)*100, 1)) + '%')
+    print('Accuracy: ' + str(round(classification_accuracy(X_test, y_test, model)*100, 1)) + '%')

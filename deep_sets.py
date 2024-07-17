@@ -3,10 +3,21 @@ from keras import layers, models
 import numpy as np
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
-from PrepworkSasakian import daattavya_accuracy,data_wrangle_S,train_network
+from PrepworkSasakian import daattavya_accuracy,data_wrangle_S
 
 def permute_vector(vector):
     return np.random.permutation(vector)
+
+def train_network(X_train, y_train, X_test, y_test):
+    model = get_network()
+    early_stopping = EarlyStopping(monitor='val_loss', patience=7)
+    history = model.fit(
+        X_train, y_train,
+        epochs=999999,
+        validation_data=(X_test, y_test),
+        callbacks=[early_stopping]
+    )
+    return model, history
 
 #define new architecture for the NN
 def equivariant_layer(inp, number_of_channels_in, number_of_channels_out):

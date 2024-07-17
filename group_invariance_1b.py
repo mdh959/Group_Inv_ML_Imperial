@@ -53,6 +53,6 @@ if __name__ == '__main__':
     num_runs = 10
     for _ in range(num_runs):
       # Train network on permuted data
-      model, history = train_network(X_train, y_train, X_test, y_test)
+      model, history = train_network(X_train, y_train, X_test, y_test, build_model())
       accuracy.append(daattavya_accuracy(y_train, X_test, y_test, model))
     print(accuracy)

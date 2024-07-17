@@ -41,8 +41,8 @@ def get_network():
     )
     return model
 
-def train_network(X_train, y_train, X_test, y_test):
-    model = get_network()
+def train_network(X_train, y_train, X_test, y_test, model):
+    print(model.summary()) # print an overview of the neural network created
     early_stopping = EarlyStopping(monitor='val_loss', patience=7)
     history = model.fit(
         X_train, y_train,
@@ -64,7 +64,7 @@ if __name__ == '__main__':
     X,y = data_wrangle_S()
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2) #split data into training and testing
     X_test_permuted = permute_vector(X_test)
-    model, history = train_network(X_train, y_train, X_test, y_test)
+    model, history = train_network(X_train, y_train, X_test, y_test, get_network())
     
     print('Accuracy as defined in the paper:')
     print(str(round(daattavya_accuracy(y_train, X_test, y_test, model) * 100, 1)) + '%')
