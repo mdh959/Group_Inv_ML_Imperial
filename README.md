@@ -1,5 +1,5 @@
-# ML summer projects
-Repository for summer work at Imperial under supervision of Daneil Platt and Daattavya Argarwal.
+# ML summer project
+Repository for summer work Project 1 at Imperial under supervision of Daniel Platt and Daattavya Argarwal.
 
 # Prep-work/ Project 1
 Use group invariant ML on a dataset from 𝐺2-geometry, try to get better accuracies than random guessing by experimenting with different architecture and introducing group invariant ML. Original results published in [this paper (1)](https://www.sciencedirect.com/science/article/pii/S0370269324000753?via%3Dihub).
