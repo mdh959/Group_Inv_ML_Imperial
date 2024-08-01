@@ -34,24 +34,27 @@ class PINN:
     
     def metric_tensor(self, x):
         x1, x2, x3 = x[:, 0:1], x[:, 1:2], x[:, 2:3]
-        print(x1)
         r = tf.sqrt(x1**2 + x2**2)
         theta = tf.math.atan2(x2, x1)
         Rr = self.R(r)
-        g11 =  tf.square(tf.cos(theta)) + tf.square((tf.sin(theta)) * Rr)
-        print(g11)
-        g12 = tf.sin(theta)*tf.cos(theta) + tf.sin(theta) * tf.cos(theta) * tf.square(Rr)
+    
+        # Ensure all these tensors have consistent shapes
+        g11 = tf.square(tf.cos(theta)) + tf.square((tf.sin(theta)) * Rr)
+        g12 = tf.sin(theta) * tf.cos(theta) + tf.sin(theta) * tf.cos(theta) * tf.square(Rr)
         g13 = tf.zeros_like(g12)
         g22 = tf.square(tf.sin(theta)) + tf.square((tf.cos(theta)) * Rr)
         g23 = tf.zeros_like(g12)
         g33 = tf.ones_like(g11)
-
-        g = tf.stack([
-            tf.stack([g11, g12, g13], axis=1),
-            tf.stack([g12, g22, g23], axis=1),
-            tf.stack([g13, g23, g33], axis=1)
-        ], axis=0)
+    
+        row1 = tf.concat([g11, g12, g13], axis=1)
+        row2 = tf.concat([g12, g22, g23], axis=1)
+        row3 = tf.concat([g13, g23, g33], axis=1)
+    
+        # Stack rows to get shape (batch_size, 3, 3)
+        g = tf.stack([row1, row2, row3], axis=1)
+    
         return g
+
 
     def partial_derivative(self, tape, u, x, dim):
         du_dx = tape.gradient(u, x)
@@ -64,6 +67,7 @@ class PINN:
         g = self.metric_tensor(x)
         g_det = tf.linalg.det(g)
         g_inv = tf.linalg.inv(g)
+        print("g inv shape:", g_inv.shape)
     
         # Construct the (u1, u2, u3) vector
         u_vec = tf.concat([u1, -u2, u3], axis=1)
@@ -117,7 +121,6 @@ class PINN:
         return tf.stack([df_dx1, df_dx2, df_dx3], axis=1)
     
     def pde_error(self, x, tape):
-        #metrics = tf.vectorized_map(lambda x: self.custom_metric(x), x_collocation)
         x = tf.expand_dims(x, axis=0)
         tape.watch(x)
         u = self.model(x)
