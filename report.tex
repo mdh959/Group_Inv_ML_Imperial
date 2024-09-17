@@ -1,0 +1,191 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{fullpage}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{multirow}
+\usepackage[hidelinks]{hyperref}
+
+
+\title{Group Invariant ML: Research Project at Imperial College, London}
+\author{Meg Dearden-Hellawell and Hugo Robijns}
+\date{Summer, 2024}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\noindent In a recent paper by a team at Cambridge University \cite{Aggarwal}, simple feed-forward neural networks were used to learn certain topological quantities of Calabi-Yau 7-manifolds. Through considering both basic ML techniques, as they did, but also group invariant methods, this short project aimed to reproduce and potentially improve their results. Ultimately, the change in accuracy was not statistically significant, as perhaps expected.\\
+
+\noindent This document is aimed at providing a summary of the work achieved and topics learnt during the project. This was the first and shorter of the two projects completed over the summer weeks at Imperial, and served mainly as an educational exercise and introduction into the field of geometrical machine learning. As a result, it is written more as a collection of notes and observations for future reference, rather than a formal research report - it may therefore be light on context and references etc. \\
+
+\noindent A big thank you to Daniel Platt from Imperial and Daattavya Agarwal from Cambridge for their time and help this summer!
+
+\end{abstract}
+
+\newpage
+
+\section{Introduction}
+Neural networks (NNs) are computational models designed to mimic the human brain, and are used to find correlations in complex, large and seemingly unrelated datasets. Machine learning (ML) and NNs have found widespread applications over the past years, including facial recognition, weather forecasting etc. \\
+
+The intersection between ML and geometry is a rich field, and was the focus of the summer at Imperial. This first project in particular concerned a recently published paper \cite{Aggarwal}, which used NNs to learn various features (Hodge numbers, Gröbner basis lengths etc.) of Calabi-Yau manifolds, to (for most of the features) great success. This is important since formally calculating these quantities can be computationally expensive, and often an accurate estimate can be valuable - the magnitude of certain Hodge numbers for example are relevant when it comes to evaluating a manifold's eligibility for string theory. \\
+
+We in particular focused on learning a particular Sasakian Hodge number, $h^{2,1}$, and later the CN invariant - in this way, the input was the weight, a vector of length 5, and the output a real number. Interestingly, the problem is known to be invariant to the permutation of the input vector, but since the NN is not aware of this constraint, the original simple model that we (and the paper) trained does not necessarily have this quality - enforcing this is therefore a potential method to steer the NN down the right track and increase accuracy.\\
+
+We experimented with 5 different permutation invariant architectures, based on the paper Deep Sets \cite{zaheer2018deepsets}, the general definition for a permutation invariant function, and fundamental domain projections, as in \cite{aslan2022groupinvariantmachinelearning}. None of these methods greatly improved accuracy, however the project was still a success and we learnt important techniques applicable elsewhere, including our subsequent project this summer. \\
+
+\subsection{Invariance versus equivariance}
+
+A quick note on invariance versus equivariance - a lot of these methods and papers mention/highlight differences between these two definitions, i.e. if $f$ is \textbf{invariant} to $g$:
+$$f\left(g\left(a\right)\right) = f\left(a\right)$$
+\indent versus if $f$ is \textbf{equivariant} to $g$:
+$$f\left(g\left(a\right)\right) = g\left(f\left(a\right)\right)$$
+
+\noindent Since in this problem our output is a single real number, and we are considering invariance/equivariance w.r.t permutation, these terms are equivalent in this context.
+
+\subsection{Code}
+The full repository, including links to the original dataset and .py files for all the architectures mentioned can be found in a GitHub repository \href{https://github.com/hrobijns/group_inv_ML_imperial}{\textbf{here}}.
+
+\newpage
+
+\section{Methods}
+\subsection{Deep Sets}
+The first two methods were based off a paper called Deep Sets \cite{zaheer2018deepsets}.
+
+\subsubsection{Theory}
+In the paper it is shown that, if we represent a standard NN layer as  $\boldsymbol{f}_{\boldsymbol{\Theta}} = \boldsymbol{\sigma} \left( \boldsymbol{\Theta} \boldsymbol{x} \right)$ where $\boldsymbol{\Theta} \in \mathbb{R}^{M \times M}$ is the weight vector and $\boldsymbol{\sigma} : \mathbb{R} \rightarrow \mathbb{R}$ is a non-linearity such as the sigmoid function, then $\boldsymbol{f}_{\boldsymbol{\Theta}}: \mathbb{R}^M \rightarrow \mathbb{R}^M$ is \emph{permutation equivariant iff:}
+\begin{equation}
+    \boldsymbol{\Theta} = \lambda \boldsymbol{I} + \gamma \left(\boldsymbol{1}\boldsymbol{1^T}\right)
+\end{equation}
+
+
+\indent where $\lambda$ and $\gamma$ are real parameters, $\boldsymbol{I} \in \mathbb{R}^{M \times M}$ is the identity matrix, and $\boldsymbol{1} = \left[1, \ldots ,1 \right]^T \in \mathbb{R}^M$. The full proof can be found in the paper, but essentially this means that for any input vector we can construct these equivariant layers, which can also be stacked (see implementation section 2.1.2 for more detail).\\
+
+\indent It is also shown that a function \( f(X) \) is invariant to the permutation in a set \( X \) iff it can be decomposed in the form: 
+\begin{equation}
+    f(X) =
+\rho \left( \sum_{x \in X} \phi(x) \right)
+\end{equation} 
+\indent for suitable transformations \( \phi \) and \( \rho \). This is very similar to the expression discussed in section 2.2.1, and this is reflected in the similar architecture between these two models. \\  
+
+\subsubsection{Implementation}
+
+\noindent \textbf{method a: equation (1), equivariant model}
+\begin{itemize}
+    \item \emph{equivariant layers}: each equivariant layer was designed according to equation (1), i.e. by summing two parts;
+    \begin{itemize}
+        \item[$\circ$] a simple convolutional part which introduces one parameter ($\lambda \boldsymbol{I}$):
+        \item[$\circ$] and a second part where the input vector is pooled (in this case take the average of the elements of the input), the dimensions expanded (i.e. this real number from the previous pooling step is repeated/tiled to form a new tensor of the right output shape), then a parameter introduced ($\gamma \left(\boldsymbol{1}\boldsymbol{1^T}\right)$. 
+    \end{itemize} 
+    \item \emph{stacking layers and further training}: multiple such equivariant layers were stacked to build a network, with dense, hidden layers added to the end for further training.
+\end{itemize}
+
+\noindent \textbf{method b: equation (2), invariant model}
+
+\begin{itemize}
+    \item \emph{input transformation}: the input vector of length five, $(x_1, x_2, x_3, x_4, x_5)$ was mapped to a layer of length 5 with \textbf{no learnable parameters} - i.e. the input vector was essentially split into its 5 elements.
+    \item \emph{shared NN}: the same NN ($\phi$) was run in parallel on the 5 elements.
+    \item \emph{pooling and further training}: the 5 outputs of the shared NN were summed together, and this output was then further trained ($\rho$).
+
+\end{itemize}
+
+\subsection{General Invariance}
+\subsubsection{Theory}
+A more general formula for permutation invariant function $\psi(x)$, where $x$ is a vector of length $n$, is given by:
+\begin{equation}
+    \psi(x) =  \frac{1}{N}\sum_{g \in S_n}{\phi\left(g \cdot x\right)}
+\end{equation}
+
+
+\indent i.e. if you can decompose your function $\psi$ as the sum/pooling of the output of a different function $\phi$ acting on each permutation of the input vector, then your function is clearly invariant to the permutation of the input vector.
+
+\subsubsection{Implementation}
+
+There were two methods in which this was implemented - either training $\phi$, then averaging (method d), which was very simple to implement but naturally got low accuracies, or by training $\psi$ directly (method c), which got higher accuracies but was slightly more complex. \emph{Note that these methods were feasible since our group, $S_5$, only had 120 elements, and so this process was not too computationally intensive}. \\
+
+\noindent \textbf{method c: equation (3), training $\psi$}
+
+\begin{itemize}
+        \item \emph{input transformation}: the input vector of length five, $(x_1, x_2, x_3, x_4, x_5)$ was mapped to a layer of size $120 \times 5$, representing all $5!$ possible permutations of the input vector. This transformation was \textbf{parameter-free}.
+        \item \emph{parallel NNs}: then, a shared neural network $\phi$ was applied to each of the 120 permutations in parallel. Each network processed one permutation of the input vector and produced a single real-number output.
+        \item \emph{aggregation and further training}: finally, the outputs from the 120 parallel networks were summed to produce the final output of $\psi$, which was trained further.
+\end{itemize}
+
+\noindent \textbf{method d: equation (3), training $\phi$}
+\begin{itemize}
+    \item \emph{train a simple NN}: trained a simple feed-forward NN, $\phi$, as in the paper, on the ordered input dataset.
+    \item \emph{average}: the output of the \textbf{overall model} ($\psi$) for a given input was then taken to be the average of the outputs of $\phi$ for all $5!$ permutations of that input. In this way, although $\phi$ is not invariant to the permutation of the input vector, $\psi$ naturally is.
+\end{itemize} 
+
+
+    
+
+
+\subsection{Fundamental Domain Projections}
+One way to force a NN to be group invariant is to map it to its fundamental domain \cite{aslan2022groupinvariantmachinelearning}. The paper provides of ways of deducing the fundamental domain for a given input, but for our input it was simply to sort the inputs in ascending order. \\
+
+    By sorting the input weights into ascending order, then training the NN on this, and then pre-processing any input data for prediction in the same way, we had a way of predicting Hodge numbers which is invariant under the permutation of the input weight. \\
+    
+
+Due to the fact that the data was already in the fundamental domain, this technique was trivial and redundant for this particular problem - it is essentially already part of our (and the paper's) original NN. \emph{This is also a reason why our supervisors and us predicted from the start that these group invariant ML methods would likely not significantly increase the accuracy found in the paper.}
+
+\section{Results}
+Each model was trained and tested ten times, with the mean and standard deviation of the accuracy for these runs displayed in the tables below. 
+
+\subsection{Sasakian Hodge numbers}
+\begin{table}[ht]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+\multirow{2}{*}{\textbf{Method}} & \multicolumn{2}{c|}{\textbf{Accuracy(\%)} } & \multirow{2}{*}{ \textbf{\# learnable parameters}} \\ \cline{2-3}
+                         & \textbf{ordered inputs} & \textbf{unordered inputs} &                        \\ \hline
+\emph{vanilla} & 94 $\pm$ 4 & 38 $\pm$ 9 & c.$1.2\times 10^3$ \\ \hline
+\emph{a} & 92 $\pm$ 7 & 92 $\pm$ 7 & c.$2.3\times 10^4$ \\ \hline
+\emph{b} & 95 $\pm$ 3 & 95 $\pm$ 3 & c.$2.8\times 10^4$ \\ \hline
+\emph{c} & 95 $\pm$ 4 & 95 $\pm$ 4 & c.$1.2\times 10^3$ \\ \hline
+\emph{d} & 39 $\pm$ 9 & 39 $\pm$ 9 & c.$1.2\times 10^3$ \\ \hline
+\end{tabular}
+\caption{Results for learning Sasakian Hodge numbers for each model. Here, \emph{vanilla} specifies a simple feed-forward \textbf{regression} NN as used in the paper. Note that accuracy is also as defined as a paper (see section 4.1).}
+\end{table}
+
+\subsection{CN invariants}
+\begin{table}[ht]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+\multirow{2}{*}{\textbf{Method}} & \multicolumn{2}{c|}{\textbf{Accuracy(\%)} } & \multirow{2}{*}{ \textbf{\# learnable parameters}} \\ \cline{2-3}
+                         & \textbf{ordered inputs} & \textbf{unordered inputs} &                        \\ \hline
+\emph{vanilla} & 6.0 $\pm$ 0.2 & 6.0 $\pm$ 0.2 & c.$1.6\times 10^3$ \\ \hline
+\emph{a} & 6.2 $\pm$ 0.6 & 6.2 $\pm$ 0.6 & c.$2.3\times 10^4$ \\ \hline
+\emph{b} & 6.2 $\pm$ 0.4 & 6.2 $\pm$ 0.4 & c.$2.2\times 10^4$ \\ \hline
+\emph{c} & 6.4 $\pm$ 0.5 & 6.4 $\pm$ 0.5 & c.$1.6\times 10^3$ \\ \hline
+\emph{d} & 1.2 $\pm$ 0.7 & 1.2 $\pm$ 0.7 & c.$1.6\times 10^3$ \\ \hline
+\end{tabular}
+\caption{Results for learning the CN invariant for each model. Here, \emph{vanilla} specifies a simple feed-forward \textbf{classification} NN as used in the paper. Note that since this is now a classification model, accuracy is defined differently to above (see section 4.1).}
+\end{table}
+
+
+
+
+\section{Discussion}
+\subsection{Methods of Determining Accuracy}
+For fair comparison, the definition of accuracy is taken from the paper, i.e. for learning the Sasakian Hodge number, since a regression NN was used, the accuracy is defined as follows:
+\begin{itemize}
+    \item[$\circ$] a bound is defined - in this case, it is 5\% of the range of the values of the training set Hodge numbers.
+    \item[$\circ$] the prediction is said to be correct if the difference between the actual Hodge number and the prediction is less than this bound, else it is incorrect. 
+\end{itemize}
+
+\noindent For CNI, the model was turned into a classifier, and the accuracy is more simple - the percentage of correctly classified CNI.
+\subsection{Tuning}
+Hyper-parameter tuning was carried out qualitatively by changing various parts of the architecture (size and number of layers etc.) and noting changes in accuracy. In future, it would be beneficial to formalise this process, perhaps through using software that can sweep through the NN.
+
+\subsection{Discussion of Results}
+Simple t-tests were carried out to evaluate if there was any statistical difference between the methods, especially compared to the method of the paper (which we have called \emph{vanilla}). No statistical difference was found compared to the paper for methods \emph{b} and \emph{c}, with \emph{d} showing low accuracies as expected. \\
+
+
+\newpage
+\bibliographystyle{apalike}
+\bibliography{library}
+
+\end{document}
