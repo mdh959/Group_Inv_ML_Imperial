@@ -10,7 +10,7 @@ The files: Sasakian_vanilla.py and Sasakian_deep_sets.py involve implementing a 
 
 Deep sets from Lemma 3 (Section 2.2, page 2) [(2)](https://arxiv.org/abs/1703.06114) are introduced to ensure permutation invariance of the input vector; accuracies did not increase. Group invariance also enforced through 1a): train a NN on our dataset then average over the 120 permutations, 1b): spliting the input vector into its 120 permutations then using these permutations to train a NN in parallel and finally summing together.
 
-Implementing group invariant architectures did not improve the accuracy (deep sets led to a decrease in accuracy). Results are summarised [in this report (4)].
+Implementing group invariant architectures did not improve the accuracy (deep sets led to a decrease in accuracy). Results are summarised [in this report (4)](https://github.com/mdh959/Imperial_projects2024/blob/main/report.tex).
 
 
 ## References:
