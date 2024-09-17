@@ -17,4 +17,4 @@ Implementing group invariant architectures did not improve the accuracy (deep se
 (1) [Aggarwal et al., 2023, *Machine learning Sasakian and G2 topology on contact Calabi-Yau 7-manifolds*](https://www.sciencedirect.com/science/article/pii/S0370269324000753?via%3Dihub) <br/>
 (2) [Zaheer et al., 2017, *Deep Sets*](https://arxiv.org/abs/1703.06114)
 (3) [Platt et al., 2022](https://openreview.net/pdf?id=RLkbkAgNA58) <br/>
-(4) [https://github.com/mdh959/Imperial_projects2024/blob/main/report.tex]
+(4) (https://github.com/mdh959/Imperial_projects2024/blob/main/report.tex) 
